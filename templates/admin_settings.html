@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Settings{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Admin Settings</h2>
+    
+    <div class="row">
+        <!-- Categories Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Categories</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_settings') }}">
+                        <input type="hidden" name="action" value="add_category">
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Add New Category</label>
+                            <input type="text" class="form-control" id="category" name="category" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Category</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h6>Existing Categories</h6>
+                    <ul class="list-group">
+                        {% for category in categories %}
+                        <li class="list-group-item">{{ category }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FAQ Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">FAQs</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_settings') }}">
+                        <input type="hidden" name="action" value="add_faq">
+                        <div class="mb-3">
+                            <label for="question" class="form-label">Question</label>
+                            <input type="text" class="form-control" id="question" name="question" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="answer" class="form-label">Answer</label>
+                            <textarea class="form-control" id="answer" name="answer" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add FAQ</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h6>Existing FAQs</h6>
+                    <div class="accordion" id="faqAccordion">
+                        {% for faq in faqs %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq{{ faq.id }}">
+                                    {{ faq.question }}
+                                </button>
+                            </h2>
+                            <div id="faq{{ faq.id }}" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    {{ faq.answer }}
+                                    <small class="text-muted d-block mt-2">Category: {{ faq.category }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chatbot Q&A Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Chatbot Q&A</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_settings') }}">
+                        <input type="hidden" name="action" value="add_chatbot_qa">
+                        <div class="mb-3">
+                            <label for="chatbot_question" class="form-label">Question</label>
+                            <input type="text" class="form-control" id="chatbot_question" name="question" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chatbot_answer" class="form-label">Answer</label>
+                            <textarea class="form-control" id="chatbot_answer" name="answer" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Q&A</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Teams Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Teams</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_settings') }}">
+                        <input type="hidden" name="action" value="create_team">
+                        <div class="mb-3">
+                            <label for="team_name" class="form-label">Team Name</label>
+                            <input type="text" class="form-control" id="team_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="team_category" class="form-label">Category</label>
+                            <select class="form-select" id="team_category" name="category" required>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="manager" class="form-label">Manager</label>
+                            <select class="form-select" id="manager" name="manager_id" required>
+                                {% for member in staff if member.role == 'manager' %}
+                                <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Team Members</label>
+                            {% for member in staff if member.role == 'team_member' %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="members" value="{{ member.id }}" id="member{{ member.id }}">
+                                <label class="form-check-label" for="member{{ member.id }}">
+                                    {{ member.first_name }} {{ member.last_name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Team</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h6>Existing Teams</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Team Name</th>
+                                    <th>Category</th>
+                                    <th>Manager</th>
+                                    <th>Members</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in teams %}
+                                <tr>
+                                    <td>{{ team.name }}</td>
+                                    <td>{{ team.category }}</td>
+                                    <td>{{ team.manager.first_name }} {{ team.manager.last_name }}</td>
+                                    <td>{{ team.members|length }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SLA Settings Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">SLA Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_settings') }}">
+                        <input type="hidden" name="action" value="update_sla">
+                        <div class="mb-3">
+                            <label class="form-label">Urgent Priority</label>
+                            <div class="row">
+                                <div class="col">
+                                    <label class="form-label">Response Time (hours)</label>
+                                    <input type="number" class="form-control" name="urgent_response" value="{{ sla_settings.urgent.response }}" required>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Resolution Time (hours)</label>
+                                    <input type="number" class="form-control" name="urgent_resolution" value="{{ sla_settings.urgent.resolution }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">High Priority</label>
+                            <div class="row">
+                                <div class="col">
+                                    <label class="form-label">Response Time (hours)</label>
+                                    <input type="number" class="form-control" name="high_response" value="{{ sla_settings.high.response }}" required>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Resolution Time (hours)</label>
+                                    <input type="number" class="form-control" name="high_resolution" value="{{ sla_settings.high.resolution }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Medium Priority</label>
+                            <div class="row">
+                                <div class="col">
+                                    <label class="form-label">Response Time (hours)</label>
+                                    <input type="number" class="form-control" name="medium_response" value="{{ sla_settings.medium.response }}" required>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Resolution Time (hours)</label>
+                                    <input type="number" class="form-control" name="medium_resolution" value="{{ sla_settings.medium.resolution }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Low Priority</label>
+                            <div class="row">
+                                <div class="col">
+                                    <label class="form-label">Response Time (hours)</label>
+                                    <input type="number" class="form-control" name="low_response" value="{{ sla_settings.low.response }}" required>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Resolution Time (hours)</label>
+                                    <input type="number" class="form-control" name="low_resolution" value="{{ sla_settings.low.resolution }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update SLA Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Team Member Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .stat-card i {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Team Member Dashboard</h2>
+    
+    <!-- Personal Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card bg-primary text-white">
+                <i class="fas fa-ticket-alt"></i>
+                <h3>{{ assigned_tickets|default(0) }}</h3>
+                <p>Assigned Tickets</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-warning text-white">
+                <i class="fas fa-clock"></i>
+                <h3>{{ pending_tickets|default(0) }}</h3>
+                <p>Pending Tickets</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-success text-white">
+                <i class="fas fa-check-circle"></i>
+                <h3>{{ resolved_tickets|default(0) }}</h3>
+                <p>Resolved Tickets</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-info text-white">
+                <i class="fas fa-stopwatch"></i>
+                <h3>{{ avg_response_time|default(0) }}h</h3>
+                <p>Avg Response Time</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Tickets -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Assigned Tickets</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in assigned_tickets_list %}
+                        <tr>
+                            <td>#{{ ticket.id }}</td>
+                            <td>{{ ticket.subject }}</td>
+                            <td>
+                                <span class="badge bg-{{ ticket.status_color }}">
+                                    {{ ticket.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ ticket.priority_color }}">
+                                    {{ ticket.priority|title }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No tickets assigned</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Response Time Trend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="responseTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Resolution Time Trend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="resolutionTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Response Time Chart
+    const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+    new Chart(responseTimeCtx, {
+        type: 'line',
+        data: {
+            labels: {{ response_time_labels|default([])|tojson|safe }},
+            datasets: [{
+                label: 'Average Response Time (hours)',
+                data: {{ response_time_data|default([])|tojson|safe }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Resolution Time Chart
+    const resolutionTimeCtx = document.getElementById('resolutionTimeChart').getContext('2d');
+    new Chart(resolutionTimeCtx, {
+        type: 'line',
+        data: {
+            labels: {{ resolution_time_labels|default([])|tojson|safe }},
+            datasets: [{
+                label: 'Average Resolution Time (hours)',
+                data: {{ resolution_time_data|default([])|tojson|safe }},
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

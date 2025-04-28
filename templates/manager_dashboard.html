@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Dashboard - HelloHelp{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Manager Dashboard</h2>
+    
+    <!-- Team Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Team Tickets</h5>
+                    <h2 class="card-text">{{ team_tickets }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Tickets</h5>
+                    <h2 class="card-text">{{ pending_tickets }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Resolved Tickets</h5>
+                    <h2 class="card-text">{{ resolved_tickets }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Team Members</h5>
+                    <h2 class="card-text">{{ team_members }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unassigned Tickets -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Unassigned Tickets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Client</th>
+                                    <th>Category</th>
+                                    <th>Priority</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in unassigned_tickets %}
+                                <tr>
+                                    <td>#{{ ticket.id }}</td>
+                                    <td>{{ ticket.subject }}</td>
+                                    <td>{{ ticket.client.first_name }} {{ ticket.client.last_name }}</td>
+                                    <td>{{ ticket.category }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.priority_color }}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignTicketModal{{ ticket.id }}">
+                                            <i class="fas fa-user-plus"></i> Assign
+                                        </button>
+                                        <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <!-- Assign Ticket Modal -->
+                                <div class="modal fade" id="assignTicketModal{{ ticket.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Assign Ticket #{{ ticket.id }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('assign_ticket', ticket_id=ticket.id) }}">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="staff_id" class="form-label">Select Team Member</label>
+                                                        <select class="form-select" id="staff_id" name="staff_id" required>
+                                                            {% for member in team_members_list %}
+                                                            <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Assign Ticket</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No unassigned tickets</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Performance -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Team Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Team Member</th>
+                                    <th>Assigned Tickets</th>
+                                    <th>Resolved Tickets</th>
+                                    <th>Response Time</th>
+                                    <th>Resolution Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in team_performance %}
+                                <tr>
+                                    <td>{{ member.first_name }} {{ member.last_name }}</td>
+                                    <td>{{ member.assigned_tickets }}</td>
+                                    <td>{{ member.resolved_tickets }}</td>
+                                    <td>{{ member.avg_response_time }} hours</td>
+                                    <td>{{ member.avg_resolution_time }} hours</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Team Tickets -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Team Tickets</h5>
+                    <a href="{{ url_for('all_tickets') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Client</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in recent_tickets %}
+                                <tr>
+                                    <td>#{{ ticket.id }}</td>
+                                    <td>{{ ticket.subject }}</td>
+                                    <td>{{ ticket.client.first_name }} {{ ticket.client.last_name }}</td>
+                                    <td>{{ ticket.assigned_to.first_name if ticket.assigned_to else 'Unassigned' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.status_color }}">
+                                            {{ ticket.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ team_member_names|tojson }},
+            datasets: [{
+                label: 'Tickets Resolved',
+                data: {{ tickets_resolved|tojson }},
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Tickets Pending',
+                data: {{ tickets_pending|tojson }},
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

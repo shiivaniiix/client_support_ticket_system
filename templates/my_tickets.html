@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}My Tickets - HelloHelp{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">My Tickets</h2>
+    
+    <!-- Tickets Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets.items %}
+                                <tr>
+                                    <td>#{{ ticket.id }}</td>
+                                    <td>{{ ticket.subject }}</td>
+                                    <td>{{ ticket.category }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.status_color }}">
+                                            {{ ticket.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ ticket.last_updated.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No tickets found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if tickets.pages > 1 %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if tickets.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('my_tickets', page=tickets.prev_num) }}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in tickets.iter_pages() %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == tickets.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('my_tickets', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if tickets.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('my_tickets', page=tickets.next_num) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

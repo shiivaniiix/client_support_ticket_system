@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">All Tickets</h3>
+                    <a href="{{ url_for('create_ticket') }}" class="btn btn-primary">Create New Ticket</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Client</th>
+                                    <th>Category</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets.items %}
+                                <tr>
+                                    <td>{{ ticket.id }}</td>
+                                    <td>{{ ticket.subject }}</td>
+                                    <td>{{ ticket.client.first_name }} {{ ticket.client.last_name }}</td>
+                                    <td>{{ ticket.category }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if ticket.priority == 'urgent' else 'warning' if ticket.priority == 'high' else 'info' if ticket.priority == 'medium' else 'secondary' }}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if ticket.status == 'resolved' else 'warning' if ticket.status == 'pending' else 'primary' }}">
+                                            {{ ticket.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}" class="btn btn-sm btn-info">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if tickets.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('all_tickets', page=tickets.prev_num) }}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in tickets.iter_pages() %}
+                                {% if page_num %}
+                                    <li class="page-item {{ 'active' if page_num == tickets.page else '' }}">
+                                        <a class="page-link" href="{{ url_for('all_tickets', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if tickets.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('all_tickets', page=tickets.next_num) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

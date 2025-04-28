@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Create New Team</h2>
+    <form method="POST" class="mt-4">
+        <div class="form-group">
+            <label for="name">Team Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select class="form-control" id="category" name="category" required>
+                <option value="Technical">Technical</option>
+                <option value="Billing">Billing</option>
+                <option value="Account">Account</option>
+                <option value="General">General</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Team Members</label>
+            <div class="border p-3" style="max-height: 300px; overflow-y: auto;">
+                {% for member in potential_members %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="members" value="{{ member.id }}" id="member{{ member.id }}">
+                    <label class="form-check-label" for="member{{ member.id }}">
+                        {{ member.first_name }} {{ member.last_name }} ({{ member.role }})
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <small class="form-text text-muted">Select team members. You can add more later.</small>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Team</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %} 
