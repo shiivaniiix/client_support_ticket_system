@@ -1435,4 +1435,4 @@ if __name__ == '__main__':
         # Create sample data
         create_sample_data()
     
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=10000) 
