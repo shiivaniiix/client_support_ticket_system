@@ -1,0 +1,16 @@
+# Ignore virtual environment
+venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore uploads and secrets
+uploads/
+.env
+password.txt
+TECHNOLOGIES_AND_DIARY.md
+
+# OS system files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+Subject: Ticket Closed - {ticket_number}
+
+Dear {client_name},
+
+This is to inform you that your request ({ticket_number}) has been closed.
+
+Thank you for reaching out to us. It was a pleasure assisting you.
+
+Regards,  
+HelloHelp Support 

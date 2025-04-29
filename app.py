@@ -18,14 +18,15 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///tickets.db')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Email Configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'donotreplytohellohelp@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'your-email-password')
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'donotreplytohellohelp@gmail.com')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
@@ -449,7 +450,11 @@ def add_reply(ticket_id):
     if current_user.role == 'team_member' and ticket.assigned_to != current_user.id:
         abort(403)
     
-    content = request.form.get('reply')
+    content = request.form.get('content')
+    if not content:
+        flash('Message cannot be empty', 'error')
+        return redirect(url_for('ticket_details', ticket_id=ticket_id))
+        
     reply = Reply(
         ticket_id=ticket_id,
         user_id=current_user.id,
@@ -463,31 +468,17 @@ def add_reply(ticket_id):
     # Send notification email
     try:
         if current_user.role == 'team_member':
-            # Send to client
-            msg = Message(
-                f'New Reply on Ticket #{ticket.id}',
-                sender=('HelloHelp Support', 'donotreplytohellohelp@gmail.com'),
-                recipients=[ticket.client.email]
-            )
-            msg.body = f'''Hello {ticket.client.first_name},
-
-A new reply has been added to your ticket #{ticket.id}:
-
-{content}
-
-You can view and respond to this ticket by clicking here: {url_for('ticket_details', ticket_id=ticket.id, _external=True)}
-
-Best regards,
-HelloHelp Support Team
-'''
-        else:
+            # Send update notification using the proper function
+            send_ticket_update_notification(ticket, content)
+        elif current_user.role == 'client':
             # Send to assigned team member
-            msg = Message(
-                f'New Reply on Ticket #{ticket.id}',
-                sender=('HelloHelp Support', 'donotreplytohellohelp@gmail.com'),
-                recipients=[ticket.assigned_to.email]
-            )
-            msg.body = f'''Hello {ticket.assigned_to.first_name},
+            if ticket.assigned_to:
+                msg = Message(
+                    f'New Reply on Ticket #{ticket.id}',
+                    sender=('HelloHelp Support', 'donotreplytohellohelp@gmail.com'),
+                    recipients=[ticket.assigned_staff.email]
+                )
+                msg.body = f'''Hello {ticket.assigned_staff.first_name},
 
 A new reply has been added to ticket #{ticket.id}:
 
@@ -496,13 +487,10 @@ A new reply has been added to ticket #{ticket.id}:
 You can view and respond to this ticket by clicking here: {url_for('ticket_details', ticket_id=ticket.id, _external=True)}
 
 Best regards,
-HelloHelp Support Team
-'''
-        
-        mail.send(msg)
-        flash('Reply added successfully! Email notification sent.')
+HelloHelp Support Team'''
+                mail.send(msg)
     except Exception as e:
-        app.logger.error(f"Error sending email notification: {str(e)}")
+        print(f"Error sending email notification: {str(e)}")
         flash('Reply added successfully, but email notification could not be sent.', 'warning')
     
     return redirect(url_for('ticket_details', ticket_id=ticket_id))
@@ -1190,6 +1178,54 @@ def test_email():
         print(f"Error in test_email: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/close_ticket/<int:ticket_id>', methods=['POST'])
+@login_required
+def close_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    if ticket.client_id != current_user.id and current_user.role not in ['admin', 'manager', 'team_member']:
+        abort(403)
+    
+    ticket.status = 'closed'
+    ticket.last_updated = datetime.utcnow()
+    db.session.commit()
+    
+    send_ticket_closed_email(ticket)
+    flash('Ticket has been closed successfully.', 'success')
+    return redirect(url_for('ticket_details', ticket_id=ticket_id))
+
+@app.route('/reopen_ticket/<int:ticket_id>', methods=['POST'])
+@login_required
+def reopen_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    if ticket.client_id != current_user.id and current_user.role not in ['admin', 'manager', 'team_member']:
+        abort(403)
+    
+    # Create a new ticket with the same content but new ID
+    new_ticket = Ticket(
+        client_id=ticket.client_id,
+        subject=f"Reopened: {ticket.subject}",
+        content=f"Original Ticket #{ticket.id} was reopened.\n\nOriginal content:\n{ticket.content}",
+        category=ticket.category,
+        priority=ticket.priority,
+        status='open',
+        created_at=datetime.utcnow(),
+        last_updated=datetime.utcnow()
+    )
+    new_ticket.calculate_sla_dates()
+    
+    db.session.add(new_ticket)
+    db.session.commit()
+    
+    # Send notification email
+    try:
+        send_ticket_created_email(new_ticket)
+        flash('Ticket has been reopened with a new ticket number.', 'success')
+    except Exception as e:
+        print(f"Error sending email notification: {str(e)}")
+        flash('Ticket reopened but email notification could not be sent.', 'warning')
+    
+    return redirect(url_for('ticket_details', ticket_id=new_ticket.id))
+
 # Helper Functions
 def generate_otp():
     return ''.join(random.choices(string.digits, k=6))
@@ -1201,20 +1237,28 @@ def send_otp_email(email, otp):
 
 def send_ticket_created_email(ticket):
     try:
-        print(f"Attempting to send email from: {app.config['MAIL_USERNAME']}")
-        print(f"Using SMTP server: {app.config['MAIL_SERVER']}:{app.config['MAIL_PORT']}")
+        with open('templates/emails/ticket_created.txt', 'r') as f:
+            template = f.read()
         
-        msg = Message('New Ticket Created',
-                     sender=app.config['MAIL_DEFAULT_SENDER'],
-                     recipients=[ticket.client.email])
-        msg.body = f'Your ticket #{ticket.id} has been created successfully.'
+        # Format the email content
+        email_content = template.format(
+            ticket_number=ticket.id,
+            client_name=ticket.client.first_name,
+            content=ticket.content
+        )
         
-        print("Sending email...")
+        # Debug log
+        print(f"Debug - Ticket Created Email Content:\n{email_content}")
+        
+        msg = Message(
+            subject=f"Ticket Created - {ticket.id}",
+            recipients=[ticket.client.email]
+        )
+        msg.body = email_content
         mail.send(msg)
-        print("Email sent successfully!")
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
-        raise  # Re-raise the exception to maintain the original error handling
+        print(f"Error sending ticket created email: {str(e)}")
+        raise
 
 def send_ticket_resolved_email(ticket):
     msg = Message('Ticket Resolved', sender=app.config['MAIL_USERNAME'], recipients=[ticket.client.email])
@@ -1232,9 +1276,29 @@ def send_reply_notification_email(ticket, reply, is_staff=False):
     mail.send(msg)
 
 def send_ticket_assigned_email(ticket, staff):
-    msg = Message('Ticket Assigned', sender=app.config['MAIL_USERNAME'], recipients=[staff.email])
-    msg.body = f'You have been assigned to ticket #{ticket.id}.'
-    mail.send(msg)
+    try:
+        with open('templates/emails/ticket_assigned.txt', 'r') as f:
+            template = f.read()
+        
+        # Format the email content
+        email_content = template.format(
+            ticket_number=ticket.id,
+            client_name=ticket.client.first_name,
+            team_member_email=staff.email
+        )
+        
+        # Debug log
+        print(f"Debug - Ticket Assigned Email Content:\n{email_content}")
+        
+        msg = Message(
+            subject=f"Ticket Assigned - {ticket.id}",
+            recipients=[ticket.client.email]
+        )
+        msg.body = email_content
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending ticket assigned email: {str(e)}")
+        raise
 
 def send_welcome_email(user, password):
     try:
@@ -1259,9 +1323,54 @@ Support Team'''
         raise  # Re-raise the exception to be handled by the caller
 
 def send_ticket_update_notification(ticket, message):
-    msg = Message('Ticket Status Update', sender=app.config['MAIL_USERNAME'], recipients=[ticket.client.email])
-    msg.body = message
-    mail.send(msg)
+    try:
+        with open('templates/emails/ticket_update.txt', 'r') as f:
+            template = f.read()
+        
+        # Format the email content
+        email_content = template.format(
+            ticket_number=ticket.id,
+            client_name=ticket.client.first_name,
+            request_content=ticket.content,
+            team_member_reply=message
+        )
+        
+        # Debug log
+        print(f"Debug - Ticket Update Email Content:\n{email_content}")
+        
+        msg = Message(
+            subject=f"Ticket Update - {ticket.id}",
+            recipients=[ticket.client.email]
+        )
+        msg.body = email_content
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending ticket update email: {str(e)}")
+        raise
+
+def send_ticket_closed_email(ticket):
+    try:
+        with open('templates/emails/ticket_closed.txt', 'r') as f:
+            template = f.read()
+        
+        # Format the email content
+        email_content = template.format(
+            ticket_number=ticket.id,
+            client_name=ticket.client.first_name
+        )
+        
+        # Debug log
+        print(f"Debug - Ticket Closed Email Content:\n{email_content}")
+        
+        msg = Message(
+            subject=f"Ticket Closed - {ticket.id}",
+            recipients=[ticket.client.email]
+        )
+        msg.body = email_content
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending ticket closed email: {str(e)}")
+        raise
 
 def create_sample_data():
     # Create sample FAQs
@@ -1300,18 +1409,6 @@ def check_and_close_inactive_tickets():
         db.session.commit()
         send_ticket_closed_email(ticket)
         flash(f'Ticket #{ticket.id} has been automatically closed due to inactivity.', 'info')
-
-def send_ticket_closed_email(ticket):
-    msg = Message('Ticket Closed Due to Inactivity',
-                 sender=app.config['MAIL_USERNAME'],
-                 recipients=[ticket.client.email])
-    msg.body = f'''Your ticket #{ticket.id} has been closed due to inactivity.
-
-If you still need assistance, please create a new ticket.
-
-Best regards,
-Support Team'''
-    mail.send(msg)
 
 # Add this to your scheduled tasks or run it periodically
 @app.before_request

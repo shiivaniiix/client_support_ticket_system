@@ -1,0 +1,14 @@
+Subject: Ticket Created - {ticket_number}
+
+Hi {client_name},
+
+Thank you for reaching out to us.  
+We have recently received your request: {content}
+
+Your ticket number is: {ticket_number}.  
+You can use this ticket ID as a reference during future interactions.
+
+Regards,  
+HelloHelp Support  
+
+Please do not reply to this email. It is system-generated. 

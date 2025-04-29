@@ -1,0 +1,16 @@
+Subject: Ticket Assigned - {ticket_number}
+
+Hi {client_name},
+
+This is to inform you that your request ({ticket_number}) has been assigned to {team_member_email}.
+
+You may log in to your account and go to **"Need Help?" > "My Tickets" > "View"** to see the progress.  
+Please click on an option there (Close/Reopen).  
+If no action is taken, the incident will automatically close after 72 hours.
+
+Thank you for reaching out to us. It was a pleasure assisting you.
+
+Regards,  
+HelloHelp Support  
+
+Please do not reply to this email. It is system-generated. 

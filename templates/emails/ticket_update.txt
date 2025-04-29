@@ -1,0 +1,12 @@
+Subject: Ticket Update - {ticket_number}
+
+Hi {client_name},
+
+We have recently received your request: {request_content}
+
+{team_member_reply}
+
+Thank you for reaching out to us.
+
+Regards,  
+HelloHelp Support 
